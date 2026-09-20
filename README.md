@@ -23,9 +23,6 @@ otf2viz.overview(trace)
 pip install -e .
 ```
 
-The `otf2` Python bindings are **not on PyPI** — they ship with Score-P / the
-OTF2 library. Use the same environment you ran `scorep` in:
-
 ```sh
 source ~/venvs/scorep/bin/activate
 python -c "import otf2; print(otf2.__version__)"

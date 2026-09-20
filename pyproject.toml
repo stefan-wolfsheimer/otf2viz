@@ -19,14 +19,13 @@ classifiers = [
 dependencies = [
     "matplotlib>=3.6",
     "numpy>=1.23",
+    "otf2>=2.3",
+    "jupyter>=1.1.1",
+    "ipywidgets>=8.0",
+    "pandas>=1.5"
 ]
 
 [project.optional-dependencies]
-# The `otf2` Python bindings ship with Score-P / the OTF2 library itself; they
-# are not on PyPI, so this extra only documents the requirement.
-otf2 = ["otf2>=2.3"]
-jupyter = ["ipywidgets>=8.0"]
-pandas = ["pandas>=1.5"]
 dev = ["pytest>=7.0"]
 
 [project.urls]
