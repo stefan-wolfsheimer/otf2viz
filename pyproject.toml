@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "otf2viz"
+version = "0.1.0"
+description = "Matplotlib visualisation of OTF2 (Score-P / Vampir) parallel traces, embeddable in Jupyter"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "parallel-algo" }]
+keywords = ["otf2", "score-p", "hpc", "tracing", "openmp", "mpi", "matplotlib"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Topic :: Scientific/Engineering :: Visualization",
+    "Topic :: System :: Benchmark",
+]
+dependencies = [
+    "matplotlib>=3.6",
+    "numpy>=1.23",
+]
+
+[project.optional-dependencies]
+# The `otf2` Python bindings ship with Score-P / the OTF2 library itself; they
+# are not on PyPI, so this extra only documents the requirement.
+otf2 = ["otf2>=2.3"]
+jupyter = ["ipywidgets>=8.0"]
+pandas = ["pandas>=1.5"]
+dev = ["pytest>=7.0"]
+
+[project.urls]
+Homepage = "https://github.com/parallel-algo/visualisation"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+filterwarnings = ["error::DeprecationWarning"]
