@@ -32,6 +32,10 @@ _MIN_LANE_PX = 9.0
 _LABEL_PADDING_PX = 6.0
 #: Cap on direct labels; beyond this the legend is the faster read.
 _MAX_LABELS = 400
+#: Width of the background-coloured line separating adjacent bars, and the
+#: on-screen bar width below which it is dropped (it would hide the bar).
+_EDGE_WIDTH_PT = 0.7
+_MIN_EDGE_BAR_PX = 4.0
 
 
 def timeline(
@@ -123,6 +127,10 @@ def timeline(
     if show_idle:
         _draw_idle_rows(ax, view, order, row_of, factor, theme)
 
+    span = (view.span[0] * factor, view.span[1] * factor)
+    ax.set_xlim(span[0], span[1] if span[1] > span[0] else span[0] + 1.0)
+    edge_widths = _edge_widths(ax, width, fig)
+
     keys = np.asarray(colormap.interval_keys(view), dtype=object)
     labels_drawn: set[str] = set()
     for key in _unique_in_order(keys):
@@ -139,15 +147,13 @@ def timeline(
                     _rectangles(x0[rows], width[rows], y0[rows], height[rows]),
                     facecolors=style["facecolor"],
                     edgecolors=theme.surface,
-                    linewidths=0.7,
+                    linewidths=edge_widths[rows],
                     hatch=style["hatch"],
                     zorder=3 + int(d),
                     label=label,
                 )
             )
 
-    span = (view.span[0] * factor, view.span[1] * factor)
-    ax.set_xlim(span[0], span[1] if span[1] > span[0] else span[0] + 1.0)
     ax.set_ylim(n_rows - 0.5 + 0.5 * len(boundaries), -0.6)
     row_labels = view.location_labels()
     ax.set_yticks([row_of[i] for i in order])
@@ -213,6 +219,22 @@ def _rectangles(x, width, y, height) -> np.ndarray:
         ],
         axis=1,
     )
+
+
+def _edge_widths(ax, width: np.ndarray, fig) -> np.ndarray:
+    """Separator line width per bar: only bars wide enough to need one get it.
+
+    The separator is drawn in the background colour. On a bar narrower than
+    a few pixels it would cover the bar entirely, and thousands of such bars
+    (e.g. a short function called in a tight loop) would paint the parent
+    region they sit on in the background colour — the row would look idle.
+    """
+    x_lo, x_hi = ax.get_xlim()
+    extent_px = ax.get_window_extent().width
+    if x_hi <= x_lo or extent_px <= 0:
+        return np.full(width.size, _EDGE_WIDTH_PT)
+    width_px = width * extent_px / (x_hi - x_lo)
+    return np.where(width_px >= _MIN_EDGE_BAR_PX, _EDGE_WIDTH_PT, 0.0)
 
 
 def _unique_in_order(keys: np.ndarray) -> list:

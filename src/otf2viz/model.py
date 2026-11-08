@@ -539,7 +539,8 @@ class Trace:
         for idx in self.location_order():
             rows = self.rows_for_location(idx)
             merged_start, merged_stop = _merge_intervals(
-                self.start[rows], self.stop[rows]
+                np.clip(self.start[rows], *self.span),
+                np.clip(self.stop[rows], *self.span),
             )
             busy = float((merged_stop - merged_start).sum())
             stats.append(
@@ -573,8 +574,11 @@ class Trace:
                 np.array(self.span, np.float64),
                 np.zeros(2, np.int32),
             )
-        s = np.concatenate(starts)
-        e = np.concatenate(stops)
+        # Intervals straddling a select_time() window are kept unclipped;
+        # clip them here so the step function stays inside (and monotone over)
+        # the span.
+        s = np.clip(np.concatenate(starts), *self.span)
+        e = np.clip(np.concatenate(stops), *self.span)
         times = np.concatenate([s, e])
         deltas = np.concatenate([np.ones(s.size, np.int32), -np.ones(e.size, np.int32)])
         # At an identical timestamp, apply the -1 before the +1 so that a
