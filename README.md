@@ -147,16 +147,23 @@ the legend.
 
 ### Consistent colours across plots
 
-Build one `ColorMap` and pass it around. Colour then follows the *region*, not
-its rank, so filtering never repaints the series that survive:
+Colour follows the *region*, not its rank. Selections of one trace
+(`select_time`, `filter`) remember the trace they came from and take their
+default colours from it, so a region keeps its colour in every zoom and filter
+without any extra code.
+
+To compare *different* traces, build one map over all of them and install it
+as the default for every following plot:
 
 ```python
-colors = otf2viz.ColorMap.from_trace(trace)
+colors = otf2viz.ColorMap.from_traces(trace_reduction, trace_critical)
+otf2viz.set_colors(colors)        # set_colors(None) restores per-trace colours
 
-fig, (top, bottom) = plt.subplots(2, 1, figsize=(12, 6))
-otf2viz.timeline(trace, ax=top, colors=colors)
-otf2viz.timeline(trace.select_time(0.1, 0.2), ax=bottom, colors=colors)
+otf2viz.timeline(trace_reduction.select_time(0.0, 0.08))
+otf2viz.timeline(trace_critical.select_time(0.0, 0.08))
 ```
+
+Passing `colors=...` to a single plot still overrides the default.
 
 Regions past the palette's eight slots fold into a single neutral `other`
 bucket rather than getting an invented ninth hue. Raise `max_colors` and the

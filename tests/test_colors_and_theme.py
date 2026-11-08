@@ -26,6 +26,34 @@ def test_colour_follows_the_entity_not_the_filtered_rank(simple_trace):
     assert ColorMap.from_trace(filtered).style("compute") != before
 
 
+def test_default_colours_are_ranked_on_the_unfiltered_origin(simple_trace):
+    from otf2viz.colors import resolve
+
+    filtered = simple_trace.filter(exclude_regions="barrier")
+    assert filtered.origin is simple_trace
+    assert filtered.select_time(*filtered.span).origin is simple_trace
+    full = resolve(None, simple_trace)
+    assert resolve(None, filtered).style("compute") == full.style("compute")
+
+
+def test_from_traces_and_set_colors_share_colours_across_traces():
+    import otf2viz
+    from otf2viz.colors import resolve
+
+    a = Trace.from_events([("t", "x", 0, 3), ("t", "y", 3, 4)])
+    b = Trace.from_events([("t", "z", 0, 5), ("t", "y", 5, 6)])
+    shared = ColorMap.from_traces(a, b)
+    assert shared.keys == ("z", "x", "y")
+    previous = otf2viz.set_colors(shared)
+    try:
+        assert resolve(None, a).style("y") == resolve(None, b).style("y")
+        # A map for another grouping is not applied.
+        assert resolve(None, a, by="paradigm") is not shared
+    finally:
+        otf2viz.set_colors(previous)
+    assert resolve(None, b).keys == ("z", "y")
+
+
 def test_extra_series_fold_into_other():
     trace = Trace.from_events(
         [(f"t{i % 2}", f"region{i}", i, i + 1) for i in range(12)]

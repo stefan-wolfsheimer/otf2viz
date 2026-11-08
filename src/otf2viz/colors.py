@@ -19,7 +19,7 @@ from typing import Iterable
 from .model import Trace
 from .theme import Theme, get_theme
 
-__all__ = ["ColorMap", "OTHER"]
+__all__ = ["ColorMap", "OTHER", "set_colors", "get_colors"]
 
 #: Bucket label for series past ``max_colors``.
 OTHER = "other"
@@ -84,15 +84,37 @@ class ColorMap:
         The two coarse groupings usually fit in the palette without folding,
         which makes them a good first look at a busy trace.
         """
+        return cls.from_traces(trace, by=by, max_colors=max_colors, theme=theme)
+
+    @classmethod
+    def from_traces(
+        cls,
+        *traces: Trace,
+        by: str = "region",
+        max_colors: int = 8,
+        theme: Theme | str | None = None,
+    ) -> "ColorMap":
+        """One map for several traces, so they can be compared side by side.
+
+        Keys are ranked by their exclusive time summed over all ``traces``; a
+        region that only occurs in one of them still gets a slot of its own.
+
+        >>> colors = ColorMap.from_traces(run_a, run_b)     # doctest: +SKIP
+        >>> otf2viz.set_colors(colors)                      # doctest: +SKIP
+        """
         if by not in _KEY_FUNCS:
             raise ValueError(
                 f"unknown grouping {by!r}; expected one of {sorted(_KEY_FUNCS)}"
             )
         key_of = _KEY_FUNCS[by]
         weights: dict[str, float] = {}
-        for stat in trace.region_stats():
-            key = key_of(stat.region)
-            weights[key] = weights.get(key, 0.0) + stat.exclusive
+        for trace in traces:
+            for stat in trace.region_stats():
+                key = key_of(stat.region)
+                weights[key] = weights.get(key, 0.0) + stat.exclusive
+            # Regions defined but never entered still get a stable slot.
+            for region in trace.regions:
+                weights.setdefault(key_of(region), 0.0)
         # Ties break on the name, so the assignment is reproducible.
         ranked = sorted(weights, key=lambda k: (-weights[k], k))
         return cls(ranked, theme=theme, max_colors=max_colors, by=by)
@@ -155,6 +177,29 @@ class ColorMap:
         )
 
 
+_default: ColorMap | None = None
+
+
+def set_colors(colors: ColorMap | None) -> ColorMap | None:
+    """Make ``colors`` the default of every plot that is not given ``colors=``.
+
+    Use it to compare several traces: build the map with
+    :meth:`ColorMap.from_traces` and every following plot paints a region the
+    same way. Applies to plots whose ``color_by`` matches the map's ``by``.
+    Pass ``None`` to go back to per-trace colours. Returns the previous map.
+    """
+    global _default
+    if colors is not None and not isinstance(colors, ColorMap):
+        raise TypeError("set_colors() expects a ColorMap or None")
+    previous, _default = _default, colors
+    return previous
+
+
+def get_colors() -> ColorMap | None:
+    """The map installed with :func:`set_colors`, if any."""
+    return _default
+
+
 def resolve(
     colors: "ColorMap | None",
     trace: Trace,
@@ -163,7 +208,16 @@ def resolve(
     max_colors: int = 8,
     theme: Theme | str | None = None,
 ) -> ColorMap:
-    """Use the caller's colour map, or derive one from ``trace``."""
+    """Pick the colour map of a plot.
+
+    In order: the caller's map, the global default from :func:`set_colors`,
+    or a map ranked on the *unfiltered* origin of ``trace`` — so a selection
+    never repaints a region just because a bigger one fell out of the window.
+    """
     if colors is not None:
         return colors
-    return ColorMap.from_trace(trace, by=by, max_colors=max_colors, theme=theme)
+    if _default is not None and _default.by == by:
+        return _default
+    return ColorMap.from_trace(
+        trace.origin, by=by, max_colors=max_colors, theme=theme
+    )

@@ -7,7 +7,7 @@ and without a notebook at all.
 
 from __future__ import annotations
 
-from .colors import ColorMap
+from .colors import ColorMap, resolve
 from .model import Trace
 from .plots import timeline
 from .theme import get_theme
@@ -23,6 +23,7 @@ _HINT = (
 def interactive_timeline(
     trace: Trace,
     *,
+    colors: ColorMap | None = None,
     color_by: str = "region",
     max_colors: int = 8,
     theme=None,
@@ -49,8 +50,8 @@ def interactive_timeline(
     import matplotlib.pyplot as plt
 
     resolved_theme = get_theme(theme)
-    colormap = ColorMap.from_trace(
-        trace, by=color_by, max_colors=max_colors, theme=resolved_theme
+    colormap = resolve(
+        colors, trace, by=color_by, max_colors=max_colors, theme=resolved_theme
     )
     lo, hi = trace.span
     step = (hi - lo) / 500 if hi > lo else 1.0

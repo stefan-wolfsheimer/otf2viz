@@ -22,7 +22,7 @@ trace from plain tuples and use the same plots:
 """
 
 from . import plots, tables, theme
-from .colors import ColorMap
+from .colors import ColorMap, get_colors, set_colors
 from .interactive import interactive_timeline
 from .model import Location, Markers, Region, Trace
 from .plots import concurrency, location_breakdown, overview, region_summary, timeline
@@ -54,6 +54,8 @@ __all__ = [
     "summary",
     # theming
     "ColorMap",
+    "set_colors",
+    "get_colors",
     "Theme",
     "LIGHT",
     "DARK",

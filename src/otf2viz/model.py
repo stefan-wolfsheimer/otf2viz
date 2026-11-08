@@ -145,6 +145,7 @@ class Trace:
         "markers",
         "span",
         "timer_resolution",
+        "_origin",
     )
 
     def __init__(
@@ -163,7 +164,10 @@ class Trace:
         name: str = "trace",
         source: str | None = None,
         timer_resolution: int | None = None,
+        origin: "Trace | None" = None,
     ) -> None:
+        # Unfiltered root of a filter()/select_time() chain; None for a root.
+        self._origin = origin
         self.locations = tuple(locations)
         self.regions = tuple(regions)
         self.start = np.asarray(start, dtype=np.float64)
@@ -304,6 +308,15 @@ class Trace:
             f"{len(self.locations)} locations, {len(self.regions)} regions, "
             f"{_format_duration(hi - lo)}>"
         )
+
+    @property
+    def origin(self) -> "Trace":
+        """The unfiltered trace this one was derived from (``self`` for a root).
+
+        Default colours are ranked on the origin, so every selection of one
+        trace paints a region in the same colour.
+        """
+        return self._origin if self._origin is not None else self
 
     @property
     def duration(self) -> float:
@@ -448,6 +461,7 @@ class Trace:
             name=name if name is not None else self.name,
             source=self.source,
             timer_resolution=self.timer_resolution,
+            origin=self.origin,
         )
 
     def select_time(self, t0: float, t1: float, *, clip: bool = False) -> "Trace":
